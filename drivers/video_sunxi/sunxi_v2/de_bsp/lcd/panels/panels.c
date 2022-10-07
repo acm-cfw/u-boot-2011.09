@@ -1,0 +1,29 @@
+#include "panels.h"
+#include "default_panel.h"
+#include "tft720x1280.h"
+#include "lp907qx.h"
+#include "starry768x1024.h"
+#include "B116XAN03.h"
+#include "h2009.h"
+#include "sc7705.h"
+
+extern __lcd_panel_t sl698ph_720p_panel;
+extern __lcd_panel_t lp079x01_panel;
+extern __lcd_panel_t h2009_panel;
+extern __lcd_panel_t sc7705_panel;
+
+__lcd_panel_t* panel_array[] = {
+	&h2009_panel,
+	&sc7705_panel,
+	&default_panel,
+	&tft720x1280_panel,
+	&lp907qx_panel,
+	&starry768x1024_panel,
+	&sl698ph_720p_panel,
+	&lp079x01_panel,
+	&B116XAN03_panel,
+	/* add new panel below */
+
+	NULL,
+};
+
