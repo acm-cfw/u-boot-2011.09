@@ -634,6 +634,7 @@ int sunxi_flash_boot_handler(int workmode)
 			script_parser_patch("mmc0_para",  "sdc_detmode", &sdc_detmode, 1);
 			//script_parser_patch("mmc2_para",  "sdc_used",   &sdc2_used, 1);
 		}
+                
 		card_no = (storage_type == 1)?0:2;
 		printf("MMC:	 %d\n", card_no);
 		board_mmc_set_num(card_no);
@@ -664,12 +665,36 @@ int sunxi_flash_boot_handler(int workmode)
 	}
 	else
 	{
+                //puts("Trying to set up sd at mmc1 even though we are using nand...\n");
+                tick_printf("Trying to set up sd at mmc1 even though we are using nand...\n");
+
+                card_no = 1;
+                printf("MMC:     %d\n", card_no);
+                board_mmc_set_num(card_no);
+                debug("set card number\n");
+                board_mmc_pre_init(card_no);
+                debug("begin to find mmc\n");
+                mmc_boot = find_mmc_device(card_no);
+                if(!mmc_boot){
+                        printf("fail to find one useful mmc card\n");
+                        //return -1;
+                }
+                debug("try to init mmc\n");
+                if (mmc_init(mmc_boot)) {
+                        puts("MMC init failed\n");
+                        //return  -1;
+                }
+                debug("mmc %d init ok\n", card_no);
+
+
+
+
 		nand_used = 1;
 		sdc2_used  = 0;
-		script_parser_patch("nand0_para", "nand0_used", &nand_used, 1);
-		script_parser_patch("nand1_para", "nand1_used", &nand_used, 1);
-		script_parser_patch("mmc2_para",  "sdc_used",   &sdc2_used, 1);
-		script_parser_patch("spi0",  "spi_used", &spi_used, 1);
+		//script_parser_patch("nand0_para", "nand0_used", &nand_used, 1);
+		//script_parser_patch("nand1_para", "nand1_used", &nand_used, 1);
+		//script_parser_patch("mmc2_para",  "sdc_used",   &sdc2_used, 1);
+		//script_parser_patch("spi0",  "spi_used", &spi_used, 1);
 
 		tick_printf("NAND: ");
 		if (workmode == WORK_MODE_BOOT) {

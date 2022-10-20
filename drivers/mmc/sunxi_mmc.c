@@ -256,7 +256,7 @@ void mmc_dump_errinfo(struct sunxi_mmc_host* smc_host, struct mmc_cmd *cmd)
 static int mmc_resource_init(int sdc_no)
 {
 	struct sunxi_mmc_host* mmchost = &mmc_host[sdc_no];
-	MMCDBG("init mmc %d resource\n", sdc_no);
+	MMCINFO("init mmc %d resource\n", sdc_no);
 	switch (sdc_no) {
 		case 0:
 			mmchost->reg = (struct sunxi_mmc *)SUNXI_MMC0_BASE;
@@ -372,333 +372,355 @@ static void get_fex_para(int sdc_no)
 	int rval;
 	int ret = 0;
 	struct sunxi_mmc_host* mmchost = &mmc_host[sdc_no];
-
-	if(sdc_no == 0)
-	{
-		gpio_request_simple("card0_boot_para", NULL);
-
-		ret = script_parser_fetch("card0_boot_para","sdc_wipe", &rval, 1);
-		if(ret < 0)
-        	MMCINFO("get sdc_phy_wipe fail.\n");
-		else {
-			if (rval & DRV_PARA_DISABLE_SECURE_WIPE) {
-				MMCINFO("disable driver secure wipe operation.\n");
-				mmc_dev[sdc_no].drv_wipe_feature |= DRV_PARA_DISABLE_SECURE_WIPE;
-			} else if (rval & DRV_PARA_DISABLE_EMMC_SANITIZE) {
-				MMCINFO("disable emmc sanitize feature.\n");
-				mmc_dev[sdc_no].drv_wipe_feature |= DRV_PARA_DISABLE_EMMC_SANITIZE;
-			} else if (rval & DRV_PARA_DISABLE_EMMC_SECURE_PURGE) {
-				MMCINFO("disable emmc secure purge feature.\n");
-				mmc_dev[sdc_no].drv_wipe_feature |= DRV_PARA_DISABLE_EMMC_SECURE_PURGE;
-			} else if (rval & DRV_PARA_DISABLE_EMMC_TRIM) {
-				MMCINFO("disable emmc trim feature.\n");
-				mmc_dev[sdc_no].drv_wipe_feature |= DRV_PARA_DISABLE_EMMC_TRIM;
-			}
-		}
-
-		ret = script_parser_fetch("card0_boot_para", "sdc_erase", &rval, 1);
-		if(ret < 0)
-			MMCINFO("get sdc0 sdc_erase fail.\n");
-		else {
-			if (rval & DRV_PARA_DISABLE_EMMC_ERASE) {
-				MMCINFO("disable emmc erase.\n");
-				mmc_dev[sdc_no].drv_erase_feature |= DRV_PARA_DISABLE_EMMC_ERASE;
-			} else if (rval & DRV_PARA_ENABLE_EMMC_SANITIZE_WHEN_ERASE) {
-				MMCINFO("enable emmc sanitize when erase.\n");
-				mmc_dev[sdc_no].drv_erase_feature |= DRV_PARA_ENABLE_EMMC_SANITIZE_WHEN_ERASE;
-			}
-		}
-
-		ret = script_parser_fetch("card0_boot_para","sdc_f_max", &rval, 1);
-		if(ret < 0)
-        MMCINFO("get sdc_f_max fail,use default %dHz\n",mmc_dev[sdc_no].f_max);
-		else{
-				if((rval>mmc_dev[sdc_no].f_max)||(rval<mmc_dev[sdc_no].f_min)){
-					MMCINFO("input sdc_f_max wrong ,use default sdc_f_max %d (min %d)\n",
-						mmc_dev[sdc_no].f_max, mmc_dev[sdc_no].f_min);
-				}else{
-					mmc_dev[sdc_no].f_max = rval;
-					MMCINFO("get sdc_f_max ok, sdc_f_max = %d\n", mmc_dev[sdc_no].f_max);
-				}
-		}
-
-
-		ret = script_parser_fetch("card0_boot_para","sdc_ex_dly_used", &rval, 1);
-		if(ret < 0){
-        		MMCINFO("get sdc_ex_dly_used fail,use default dly\n");
-			return;
-		}else{
-				if(rval == 1){  //maual sample point from fex
-					MMCINFO("get sdc_ex_dly_used ok\n");
-					MMCINFO("use manual sample point  in fex\n");
-				}else{
-					MMCINFO("undefined value %d,use default dly\n",rval);
-					return;
-				}
-		}
-		/*************************25M dly*************************************/
-		ret = script_parser_fetch("card0_boot_para","sdc_odly_25M", &rval, 1);
-		if(ret < 0)
-        MMCINFO("get sdc_odly_25M fail,use default dly %d\n",mmchost->mmc_clk_dly[MMC_CLK_25M].oclk_dly);
-		else{
-				if((rval>7)||(rval<0)){
-					MMCINFO("input sdc_odly_25M wrong ,use default dly %d\n",mmchost->mmc_clk_dly[MMC_CLK_25M].oclk_dly);
-				}else{
-					mmchost->mmc_clk_dly[MMC_CLK_25M].oclk_dly = rval;
-					MMCINFO("get sdc_odly_25M ok, odly = %d\n", mmchost->mmc_clk_dly[MMC_CLK_25M].oclk_dly);
-				}
-		}
-
-		ret = script_parser_fetch("card0_boot_para","sdc_sdly_25M", &rval, 1);
-		if(ret < 0)
-        MMCINFO("get sdc_sdly_25M fail,use default dly %d\n",mmchost->mmc_clk_dly[MMC_CLK_25M].sclk_dly);
-		else{
-				if((rval>7)||(rval<0)){
-					MMCINFO("input sdc_sdly_25M wrong ,use default dly %d\n",mmchost->mmc_clk_dly[MMC_CLK_25M].sclk_dly);
-				}else{
-					mmchost->mmc_clk_dly[MMC_CLK_25M].sclk_dly = rval;
-					MMCINFO("get sdc_sdly_25M ok, sdly = %d\n", mmchost->mmc_clk_dly[MMC_CLK_25M].sclk_dly);
-				}
-		}
-
-			/*************************50M dly*************************************/
-		ret = script_parser_fetch("card0_boot_para","sdc_odly_50M", &rval, 1);
-		if(ret < 0)
-        MMCINFO("get sdc_odly_50M fail,use default dly %d\n",mmchost->mmc_clk_dly[MMC_CLK_50M].oclk_dly);
-		else{
-			  if((rval>7)||(rval<0)){
-			  	MMCINFO("input sdc_odly_50M wrong, use default dly %d\n", mmchost->mmc_clk_dly[MMC_CLK_50M].oclk_dly);
-			  }else{
-					mmchost->mmc_clk_dly[MMC_CLK_50M].oclk_dly = rval;
-					MMCINFO("get sdc_odly_50M ok, odly = %d\n", mmchost->mmc_clk_dly[MMC_CLK_50M].oclk_dly);
-				}
-		}
-
-		ret = script_parser_fetch("card0_boot_para","sdc_sdly_50M", &rval, 1);
-		if(ret < 0)
-        MMCINFO("get sdc_sdly_50M fail,use default dly %d\n",mmchost->mmc_clk_dly[MMC_CLK_50M].sclk_dly);
-		else{
-				if((rval>7)||(rval<0)){
-					MMCINFO("input sdc_sdly_50M wrong, use default dly %d\n", mmchost->mmc_clk_dly[MMC_CLK_50M].sclk_dly);
-				}else{
-					mmchost->mmc_clk_dly[MMC_CLK_50M].sclk_dly = rval;
-					MMCINFO("get sdc_sdly_50M ok, sdly = %d\n", mmchost->mmc_clk_dly[MMC_CLK_50M].sclk_dly);
-				}
-		}
-
-
-
-	}else {// if(sdc_no == 2)
-		gpio_request_simple("card2_boot_para", NULL);
-
-		ret = script_parser_fetch("card2_boot_para","sdc_wipe", &rval, 1);
-		if(ret < 0)
-        	MMCINFO("get sdc_phy_wipe fail.\n");
-		else {
-			if (rval & DRV_PARA_DISABLE_SECURE_WIPE) {
-				MMCINFO("disable driver secure wipe operation.\n");
-				mmc_dev[sdc_no].drv_wipe_feature |= DRV_PARA_DISABLE_SECURE_WIPE;
-			} else if (rval & DRV_PARA_DISABLE_EMMC_SANITIZE) {
-				MMCINFO("disable emmc sanitize feature.\n");
-				mmc_dev[sdc_no].drv_wipe_feature |= DRV_PARA_DISABLE_EMMC_SANITIZE;
-			} else if (rval & DRV_PARA_DISABLE_EMMC_SECURE_PURGE) {
-				MMCINFO("disable emmc secure purge feature.\n");
-				mmc_dev[sdc_no].drv_wipe_feature |= DRV_PARA_DISABLE_EMMC_SECURE_PURGE;
-			} else if (rval & DRV_PARA_DISABLE_EMMC_TRIM) {
-				MMCINFO("disable emmc trim feature.\n");
-				mmc_dev[sdc_no].drv_wipe_feature |= DRV_PARA_DISABLE_EMMC_TRIM;
-			}
-		}
-
-		ret = script_parser_fetch("card2_boot_para", "sdc_erase", &rval, 1);
-		if(ret < 0)
-			MMCINFO("get sdc0 sdc_erase fail.\n");
-		else {
-			if (rval & DRV_PARA_DISABLE_EMMC_ERASE) {
-				MMCINFO("disable emmc erase.\n");
-				mmc_dev[sdc_no].drv_erase_feature |= DRV_PARA_DISABLE_EMMC_ERASE;
-			} else if (rval & DRV_PARA_ENABLE_EMMC_SANITIZE_WHEN_ERASE) {
-				MMCINFO("enable emmc sanitize.\n");
-				mmc_dev[sdc_no].drv_erase_feature |= DRV_PARA_ENABLE_EMMC_SANITIZE_WHEN_ERASE;
-			}
-		}
-
-#if defined(CONFIG_ARCH_SUN8IW5P1) || defined(CONFIG_ARCH_SUN8IW6P1) || defined(CONFIG_ARCH_SUN8IW8P1)||(defined CONFIG_ARCH_SUN8IW7P1)|| (defined CONFIG_ARCH_SUN8IW9P1)
-		/*************************sdc_2xmode*************************************/
-		ret = script_parser_fetch("card2_boot_para","sdc_2xmode", &rval, 1);
-		if(ret < 0)
+    MMCINFO("get_fex_para - gathering info from script.bin...\n");
+	
+	switch(sdc_no){
+		
+		
+		case 0:
 		{
-			mmc_dev[sdc_no].host_func = MMC_NO_FUNC;
-			MMCINFO("get sdc_2xmode fail  used =  %d\n",mmc_dev[sdc_no].host_func);
-		}
-		else
-		{
-			if(rval == 1)
-			{
-				mmc_dev[sdc_no].host_func = MMC_HOST_2XMODE_FUNC;
-			}
-			else
-			{
-				mmc_dev[sdc_no].host_func = MMC_NO_FUNC;
-			}
-			MMCINFO("get sdc_2xmode ok, val = %d\n", mmc_dev[sdc_no].host_func);
-		}
-		/*************************sdc_ddrmode*************************************/
-		ret = script_parser_fetch("card2_boot_para","sdc_ddrmode", &rval, 1);
-		if(ret < 0)
-		{
-			mmc_dev[sdc_no].mmc_func_en.ddr_func_en = 0;
-			MMCINFO("get sdc_ddrmode fail  used =  %d\n",mmc_dev[sdc_no].mmc_func_en.ddr_func_en );
-		}
-		else
-		{
-			if(rval == 1)
-			{
-				mmc_dev[sdc_no].mmc_func_en.ddr_func_en = 1;
-			}
-			else
-			{
-				mmc_dev[sdc_no].mmc_func_en.ddr_func_en = 0;
-			}
-			MMCINFO("get sdc_ddrmode ok, val = %d\n", mmc_dev[sdc_no].mmc_func_en.ddr_func_en );
-		}
-#endif
-		ret = script_parser_fetch("card2_boot_para","sdc_f_max", &rval, 1);
-		if(ret < 0)
-            MMCINFO("get sdc_f_max fail,use default  %dHz\n", mmc_dev[sdc_no].f_max);
-		else {
-				if((rval>mmc_dev[sdc_no].f_max)||(rval<mmc_dev[sdc_no].f_min)){
-					MMCINFO("input sdc_f_max wrong %d,use default sdc_f_max %d (min %d)\n",
-						rval, mmc_dev[sdc_no].f_max, mmc_dev[sdc_no].f_min);
-				}else{
-					mmc_dev[sdc_no].f_max = rval;
-					MMCINFO("get sdc_f_max ok, sdc_f_max = %d\n", mmc_dev[sdc_no].f_max);
-				}
-		}
+			gpio_request_simple("card0_boot_para", NULL);
 
-		ret = script_parser_fetch("card2_boot_para","card_line", &rval, 1);
-		if(ret < 0)
-        MMCINFO("get card_line fail,use default card_line %d\n",4);
-		else{
-#ifndef CONFIG_ARCH_SUN7I
-				if((rval!=8)&&(rval!=1)&&(rval!=4)){
-					MMCINFO("input card_line wrong ,use default card_line %d\n",4);
-				}else{
-					if(rval == 8 ){
-						mmc_dev[sdc_no].host_caps |= MMC_MODE_8BIT;
-					}else if(rval == 4){
-						mmc_dev[sdc_no].host_caps &= ~MMC_MODE_8BIT;
-						mmc_dev[sdc_no].host_caps |= MMC_MODE_4BIT;
+			ret = script_parser_fetch("card0_boot_para","sdc_wipe", &rval, 1);
+			if(ret < 0)
+				MMCINFO("get sdc_phy_wipe fail.\n");
+			else {
+				if (rval & DRV_PARA_DISABLE_SECURE_WIPE) {
+					MMCINFO("disable driver secure wipe operation.\n");
+					mmc_dev[sdc_no].drv_wipe_feature |= DRV_PARA_DISABLE_SECURE_WIPE;
+				} else if (rval & DRV_PARA_DISABLE_EMMC_SANITIZE) {
+					MMCINFO("disable emmc sanitize feature.\n");
+					mmc_dev[sdc_no].drv_wipe_feature |= DRV_PARA_DISABLE_EMMC_SANITIZE;
+				} else if (rval & DRV_PARA_DISABLE_EMMC_SECURE_PURGE) {
+					MMCINFO("disable emmc secure purge feature.\n");
+					mmc_dev[sdc_no].drv_wipe_feature |= DRV_PARA_DISABLE_EMMC_SECURE_PURGE;
+				} else if (rval & DRV_PARA_DISABLE_EMMC_TRIM) {
+					MMCINFO("disable emmc trim feature.\n");
+					mmc_dev[sdc_no].drv_wipe_feature |= DRV_PARA_DISABLE_EMMC_TRIM;
+				}
+			}
+
+			ret = script_parser_fetch("card0_boot_para", "sdc_erase", &rval, 1);
+			if(ret < 0)
+				MMCINFO("get sdc0 sdc_erase fail.\n");
+			else {
+				if (rval & DRV_PARA_DISABLE_EMMC_ERASE) {
+					MMCINFO("disable emmc erase.\n");
+					mmc_dev[sdc_no].drv_erase_feature |= DRV_PARA_DISABLE_EMMC_ERASE;
+				} else if (rval & DRV_PARA_ENABLE_EMMC_SANITIZE_WHEN_ERASE) {
+					MMCINFO("enable emmc sanitize when erase.\n");
+					mmc_dev[sdc_no].drv_erase_feature |= DRV_PARA_ENABLE_EMMC_SANITIZE_WHEN_ERASE;
+				}
+			}
+
+			ret = script_parser_fetch("card0_boot_para","sdc_f_max", &rval, 1);
+			if(ret < 0)
+			MMCINFO("get sdc_f_max fail,use default %dHz\n",mmc_dev[sdc_no].f_max);
+			else{
+					if((rval>mmc_dev[sdc_no].f_max)||(rval<mmc_dev[sdc_no].f_min)){
+						MMCINFO("input sdc_f_max wrong ,use default sdc_f_max %d (min %d)\n",
+							mmc_dev[sdc_no].f_max, mmc_dev[sdc_no].f_min);
 					}else{
-						mmc_dev[sdc_no].host_caps &= ~MMC_MODE_8BIT;
-						mmc_dev[sdc_no].host_caps &= ~MMC_MODE_4BIT;
+						mmc_dev[sdc_no].f_max = rval;
+						MMCINFO("get sdc_f_max ok, sdc_f_max = %d\n", mmc_dev[sdc_no].f_max);
 					}
-					MMCINFO("get card_line ok, card_line = %d\n", rval);
-				}
-#else
-				if((rval!=1)&&(rval!=4)){
-					MMCINFO("input card_line wrong ,use default card_line %d\n",4);
-				}else{
-					if(rval == 4){
-						mmc_dev[sdc_no].host_caps &= ~MMC_MODE_8BIT;
-						mmc_dev[sdc_no].host_caps |= MMC_MODE_4BIT;
+			}
+
+
+			ret = script_parser_fetch("card0_boot_para","sdc_ex_dly_used", &rval, 1);
+			if(ret < 0){
+					MMCINFO("get sdc_ex_dly_used fail,use default dly\n");
+				return;
+			}else{
+					if(rval == 1){  //maual sample point from fex
+						MMCINFO("get sdc_ex_dly_used ok\n");
+						MMCINFO("use manual sample point  in fex\n");
 					}else{
-						mmc_dev[sdc_no].host_caps &= ~MMC_MODE_8BIT;
-						mmc_dev[sdc_no].host_caps &= ~MMC_MODE_4BIT;
-					}
-					MMCINFO("get card_line ok, card_line = %d\n", rval);
-				}
-#endif
-		}
-
-
-		ret = script_parser_fetch("card2_boot_para","sdc_ex_dly_used", &rval, 1);
-		if(ret < 0){
-        		MMCINFO("get sdc_ex_dly_used fail,use default\n");
-			return;
-		}else{
-				int rval_ker =0;
-				ret = script_parser_fetch("mmc2_para","sdc_ex_dly_used", &rval_ker, 1);
-				int work_mode = uboot_spare_head.boot_data.work_mode;
-				//MMCINFO("ret%d,rval_ker%d,rval%d",ret,rval_ker,rval);
-				if((ret>=0)&&(rval_ker == 2)&&(rval == 2)){//only when kernal use auto sample,uboot will use auto sample.
-					struct tuning_sdly  *sdly= (struct tuning_sdly  *)uboot_spare_head.boot_data.sdcard_spare_data;
-					mmc_dev[sdc_no].sample_mode = AUTO_SAMPLE_MODE;
-					MMCINFO("get sdc_ex_dly_used ok\n");
-					MMCINFO("use auto sdly \n");
-					if(work_mode != WORK_MODE_BOOT){
-						//usb product will auto get sample point,so no need to get auto sdly,so first used default value
-						MMCINFO("Product will auto sample,not need to get auto sdly\n");
+						MMCINFO("undefined value %d,use default dly\n",rval);
 						return;
 					}
-					MMCDBG("get auto sdly %d in 25M\n",sdly->sdly_25M);
-					mmchost->mmc_clk_dly[MMC_CLK_25M].sclk_dly = sdly->sdly_25M;
-					MMCDBG("get auto sdly %d in 50M\n",sdly->sdly_50M);
-					mmchost->mmc_clk_dly[MMC_CLK_50M].sclk_dly = sdly->sdly_50M;
-					MMCINFO("auto sdly %d in 25M \n", mmchost->mmc_clk_dly[MMC_CLK_25M].sclk_dly);
-					MMCINFO("auto sdly %d in 50M \n", mmchost->mmc_clk_dly[MMC_CLK_50M].sclk_dly);
-					return;
-				}else if(rval == 1){  //maual sample point from fex
-					MMCINFO("get sdc_ex_dly_used ok\n");
-					MMCINFO("use manual sample point  in fex\n");
-				}else{
-					MMCINFO("undefined value %d or kernel not use auto sample,use default dly\n",rval);
-					return;
-				}
+			}
+			/*************************25M dly*************************************/
+			ret = script_parser_fetch("card0_boot_para","sdc_odly_25M", &rval, 1);
+			if(ret < 0)
+			MMCINFO("get sdc_odly_25M fail,use default dly %d\n",mmchost->mmc_clk_dly[MMC_CLK_25M].oclk_dly);
+			else{
+					if((rval>7)||(rval<0)){
+						MMCINFO("input sdc_odly_25M wrong ,use default dly %d\n",mmchost->mmc_clk_dly[MMC_CLK_25M].oclk_dly);
+					}else{
+						mmchost->mmc_clk_dly[MMC_CLK_25M].oclk_dly = rval;
+						MMCINFO("get sdc_odly_25M ok, odly = %d\n", mmchost->mmc_clk_dly[MMC_CLK_25M].oclk_dly);
+					}
+			}
+
+			ret = script_parser_fetch("card0_boot_para","sdc_sdly_25M", &rval, 1);
+			if(ret < 0)
+			MMCINFO("get sdc_sdly_25M fail,use default dly %d\n",mmchost->mmc_clk_dly[MMC_CLK_25M].sclk_dly);
+			else{
+					if((rval>7)||(rval<0)){
+						MMCINFO("input sdc_sdly_25M wrong ,use default dly %d\n",mmchost->mmc_clk_dly[MMC_CLK_25M].sclk_dly);
+					}else{
+						mmchost->mmc_clk_dly[MMC_CLK_25M].sclk_dly = rval;
+						MMCINFO("get sdc_sdly_25M ok, sdly = %d\n", mmchost->mmc_clk_dly[MMC_CLK_25M].sclk_dly);
+					}
+			}
+
+				/*************************50M dly*************************************/
+			ret = script_parser_fetch("card0_boot_para","sdc_odly_50M", &rval, 1);
+			if(ret < 0)
+			MMCINFO("get sdc_odly_50M fail,use default dly %d\n",mmchost->mmc_clk_dly[MMC_CLK_50M].oclk_dly);
+			else{
+				  if((rval>7)||(rval<0)){
+					MMCINFO("input sdc_odly_50M wrong, use default dly %d\n", mmchost->mmc_clk_dly[MMC_CLK_50M].oclk_dly);
+				  }else{
+						mmchost->mmc_clk_dly[MMC_CLK_50M].oclk_dly = rval;
+						MMCINFO("get sdc_odly_50M ok, odly = %d\n", mmchost->mmc_clk_dly[MMC_CLK_50M].oclk_dly);
+					}
+			}
+
+			ret = script_parser_fetch("card0_boot_para","sdc_sdly_50M", &rval, 1);
+			if(ret < 0)
+			MMCINFO("get sdc_sdly_50M fail,use default dly %d\n",mmchost->mmc_clk_dly[MMC_CLK_50M].sclk_dly);
+			else{
+					if((rval>7)||(rval<0)){
+						MMCINFO("input sdc_sdly_50M wrong, use default dly %d\n", mmchost->mmc_clk_dly[MMC_CLK_50M].sclk_dly);
+					}else{
+						mmchost->mmc_clk_dly[MMC_CLK_50M].sclk_dly = rval;
+						MMCINFO("get sdc_sdly_50M ok, sdly = %d\n", mmchost->mmc_clk_dly[MMC_CLK_50M].sclk_dly);
+					}
+			}
+
+
+         break;
 		}
 
+        case 2:		
+		{// if(sdc_no == 2)
+			gpio_request_simple("card2_boot_para", NULL);
 
-		/*************************25M dly*************************************/
-		ret = script_parser_fetch("card2_boot_para","sdc_odly_25M", &rval, 1);
-		if(ret < 0){
-        		MMCINFO("get sdc_odly_25M fail,use default dly %d\n",mmchost->mmc_clk_dly[MMC_CLK_25M].oclk_dly);
-		}else{
-				if((rval>7)||(rval<0)){
-					MMCINFO("input sdc_odly_25M wrong ,use default dly %d\n",mmchost->mmc_clk_dly[MMC_CLK_25M].oclk_dly);
-				}else{
-					mmchost->mmc_clk_dly[MMC_CLK_25M].oclk_dly = rval;
-					MMCINFO("get sdc_odly_25M ok, odly = %d\n", mmchost->mmc_clk_dly[MMC_CLK_25M].oclk_dly);
+			ret = script_parser_fetch("card2_boot_para","sdc_wipe", &rval, 1);
+			if(ret < 0)
+				MMCINFO("get sdc_phy_wipe fail.\n");
+			else {
+				if (rval & DRV_PARA_DISABLE_SECURE_WIPE) {
+					MMCINFO("disable driver secure wipe operation.\n");
+					mmc_dev[sdc_no].drv_wipe_feature |= DRV_PARA_DISABLE_SECURE_WIPE;
+				} else if (rval & DRV_PARA_DISABLE_EMMC_SANITIZE) {
+					MMCINFO("disable emmc sanitize feature.\n");
+					mmc_dev[sdc_no].drv_wipe_feature |= DRV_PARA_DISABLE_EMMC_SANITIZE;
+				} else if (rval & DRV_PARA_DISABLE_EMMC_SECURE_PURGE) {
+					MMCINFO("disable emmc secure purge feature.\n");
+					mmc_dev[sdc_no].drv_wipe_feature |= DRV_PARA_DISABLE_EMMC_SECURE_PURGE;
+				} else if (rval & DRV_PARA_DISABLE_EMMC_TRIM) {
+					MMCINFO("disable emmc trim feature.\n");
+					mmc_dev[sdc_no].drv_wipe_feature |= DRV_PARA_DISABLE_EMMC_TRIM;
 				}
-		}
+			}
 
-		ret = script_parser_fetch("card2_boot_para","sdc_sdly_25M", &rval, 1);
-		if(ret < 0)
-        MMCINFO("get sdc_sdly_25M fail,use default dly %d\n",mmchost->mmc_clk_dly[MMC_CLK_25M].sclk_dly);
-		else{
-				if((rval>7)||(rval<0)){
-					MMCINFO("input sdc_sdly_25M wrong ,use default dly %d\n",mmchost->mmc_clk_dly[MMC_CLK_25M].sclk_dly);
-				}else{
-					mmchost->mmc_clk_dly[MMC_CLK_25M].sclk_dly = rval;
-					MMCINFO("get sdc_sdly_25M ok, sdly = %d\n", mmchost->mmc_clk_dly[MMC_CLK_25M].sclk_dly);
+			ret = script_parser_fetch("card2_boot_para", "sdc_erase", &rval, 1);
+			if(ret < 0)
+				MMCINFO("get sdc0 sdc_erase fail.\n");
+			else {
+				if (rval & DRV_PARA_DISABLE_EMMC_ERASE) {
+					MMCINFO("disable emmc erase.\n");
+					mmc_dev[sdc_no].drv_erase_feature |= DRV_PARA_DISABLE_EMMC_ERASE;
+				} else if (rval & DRV_PARA_ENABLE_EMMC_SANITIZE_WHEN_ERASE) {
+					MMCINFO("enable emmc sanitize.\n");
+					mmc_dev[sdc_no].drv_erase_feature |= DRV_PARA_ENABLE_EMMC_SANITIZE_WHEN_ERASE;
 				}
-		}
+			}
 
-			/*************************50M dly*************************************/
-		ret = script_parser_fetch("card2_boot_para","sdc_odly_50M", &rval, 1);
-		if(ret < 0)
-        MMCINFO("get sdc_odly_50M fail,use default dly %d\n",mmchost->mmc_clk_dly[MMC_CLK_50M].oclk_dly);
-		else{
-			  if((rval>7)||(rval<0)){
-			  	MMCINFO("input sdc_odly_50M wrong, use default dly %d\n", mmchost->mmc_clk_dly[MMC_CLK_50M].oclk_dly);
-			  }else{
-					mmchost->mmc_clk_dly[MMC_CLK_50M].oclk_dly = rval;
-					MMCINFO("get sdc_odly_50M ok, odly = %d\n", mmchost->mmc_clk_dly[MMC_CLK_50M].oclk_dly);
+	#if defined(CONFIG_ARCH_SUN8IW5P1) || defined(CONFIG_ARCH_SUN8IW6P1) || defined(CONFIG_ARCH_SUN8IW8P1)||(defined CONFIG_ARCH_SUN8IW7P1)|| (defined CONFIG_ARCH_SUN8IW9P1)
+			/*************************sdc_2xmode*************************************/
+			ret = script_parser_fetch("card2_boot_para","sdc_2xmode", &rval, 1);
+			if(ret < 0)
+			{
+				mmc_dev[sdc_no].host_func = MMC_NO_FUNC;
+				MMCINFO("get sdc_2xmode fail  used =  %d\n",mmc_dev[sdc_no].host_func);
+			}
+			else
+			{
+				if(rval == 1)
+				{
+					mmc_dev[sdc_no].host_func = MMC_HOST_2XMODE_FUNC;
 				}
-		}
-
-		ret = script_parser_fetch("card2_boot_para","sdc_sdly_50M", &rval, 1);
-		if(ret < 0)
-        MMCINFO("get sdc_sdly_50M fail,use default dly %d\n",mmchost->mmc_clk_dly[MMC_CLK_50M].sclk_dly);
-		else{
-				if((rval>7)||(rval<0)){
-					MMCINFO("input sdc_sdly_50M wrong, use default dly %d\n", mmchost->mmc_clk_dly[MMC_CLK_50M].sclk_dly);
-				}else{
-					mmchost->mmc_clk_dly[MMC_CLK_50M].sclk_dly = rval;
-					MMCINFO("get sdc_sdly_50M ok, sdly = %d\n", mmchost->mmc_clk_dly[MMC_CLK_50M].sclk_dly);
+				else
+				{
+					mmc_dev[sdc_no].host_func = MMC_NO_FUNC;
 				}
+				MMCINFO("get sdc_2xmode ok, val = %d\n", mmc_dev[sdc_no].host_func);
+			}
+			/*************************sdc_ddrmode*************************************/
+			ret = script_parser_fetch("card2_boot_para","sdc_ddrmode", &rval, 1);
+			if(ret < 0)
+			{
+				mmc_dev[sdc_no].mmc_func_en.ddr_func_en = 0;
+				MMCINFO("get sdc_ddrmode fail  used =  %d\n",mmc_dev[sdc_no].mmc_func_en.ddr_func_en );
+			}
+			else
+			{
+				if(rval == 1)
+				{
+					mmc_dev[sdc_no].mmc_func_en.ddr_func_en = 1;
+				}
+				else
+				{
+					mmc_dev[sdc_no].mmc_func_en.ddr_func_en = 0;
+				}
+				MMCINFO("get sdc_ddrmode ok, val = %d\n", mmc_dev[sdc_no].mmc_func_en.ddr_func_en );
+			}
+	#endif
+			ret = script_parser_fetch("card2_boot_para","sdc_f_max", &rval, 1);
+			if(ret < 0)
+				MMCINFO("get sdc_f_max fail,use default  %dHz\n", mmc_dev[sdc_no].f_max);
+			else {
+					if((rval>mmc_dev[sdc_no].f_max)||(rval<mmc_dev[sdc_no].f_min)){
+						MMCINFO("input sdc_f_max wrong %d,use default sdc_f_max %d (min %d)\n",
+							rval, mmc_dev[sdc_no].f_max, mmc_dev[sdc_no].f_min);
+					}else{
+						mmc_dev[sdc_no].f_max = rval;
+						MMCINFO("get sdc_f_max ok, sdc_f_max = %d\n", mmc_dev[sdc_no].f_max);
+					}
+			}
+
+			ret = script_parser_fetch("card2_boot_para","card_line", &rval, 1);
+			if(ret < 0)
+			MMCINFO("get card_line fail,use default card_line %d\n",4);
+			else{
+	#ifndef CONFIG_ARCH_SUN7I
+					if((rval!=8)&&(rval!=1)&&(rval!=4)){
+						MMCINFO("input card_line wrong ,use default card_line %d\n",4);
+					}else{
+						if(rval == 8 ){
+							mmc_dev[sdc_no].host_caps |= MMC_MODE_8BIT;
+						}else if(rval == 4){
+							mmc_dev[sdc_no].host_caps &= ~MMC_MODE_8BIT;
+							mmc_dev[sdc_no].host_caps |= MMC_MODE_4BIT;
+						}else{
+							mmc_dev[sdc_no].host_caps &= ~MMC_MODE_8BIT;
+							mmc_dev[sdc_no].host_caps &= ~MMC_MODE_4BIT;
+						}
+						MMCINFO("get card_line ok, card_line = %d\n", rval);
+					}
+	#else
+					if((rval!=1)&&(rval!=4)){
+						MMCINFO("input card_line wrong ,use default card_line %d\n",4);
+					}else{
+						if(rval == 4){
+							mmc_dev[sdc_no].host_caps &= ~MMC_MODE_8BIT;
+							mmc_dev[sdc_no].host_caps |= MMC_MODE_4BIT;
+						}else{
+							mmc_dev[sdc_no].host_caps &= ~MMC_MODE_8BIT;
+							mmc_dev[sdc_no].host_caps &= ~MMC_MODE_4BIT;
+						}
+						MMCINFO("get card_line ok, card_line = %d\n", rval);
+					}
+	#endif
+			}
+
+
+			ret = script_parser_fetch("card2_boot_para","sdc_ex_dly_used", &rval, 1);
+			if(ret < 0){
+					MMCINFO("get sdc_ex_dly_used fail,use default\n");
+				return;
+			}else{
+					int rval_ker =0;
+					ret = script_parser_fetch("mmc2_para","sdc_ex_dly_used", &rval_ker, 1);
+					int work_mode = uboot_spare_head.boot_data.work_mode;
+					//MMCINFO("ret%d,rval_ker%d,rval%d",ret,rval_ker,rval);
+					if((ret>=0)&&(rval_ker == 2)&&(rval == 2)){//only when kernal use auto sample,uboot will use auto sample.
+						struct tuning_sdly  *sdly= (struct tuning_sdly  *)uboot_spare_head.boot_data.sdcard_spare_data;
+						mmc_dev[sdc_no].sample_mode = AUTO_SAMPLE_MODE;
+						MMCINFO("get sdc_ex_dly_used ok\n");
+						MMCINFO("use auto sdly \n");
+						if(work_mode != WORK_MODE_BOOT){
+							//usb product will auto get sample point,so no need to get auto sdly,so first used default value
+							MMCINFO("Product will auto sample,not need to get auto sdly\n");
+							return;
+						}
+						MMCDBG("get auto sdly %d in 25M\n",sdly->sdly_25M);
+						mmchost->mmc_clk_dly[MMC_CLK_25M].sclk_dly = sdly->sdly_25M;
+						MMCDBG("get auto sdly %d in 50M\n",sdly->sdly_50M);
+						mmchost->mmc_clk_dly[MMC_CLK_50M].sclk_dly = sdly->sdly_50M;
+						MMCINFO("auto sdly %d in 25M \n", mmchost->mmc_clk_dly[MMC_CLK_25M].sclk_dly);
+						MMCINFO("auto sdly %d in 50M \n", mmchost->mmc_clk_dly[MMC_CLK_50M].sclk_dly);
+						return;
+					}else if(rval == 1){  //maual sample point from fex
+						MMCINFO("get sdc_ex_dly_used ok\n");
+						MMCINFO("use manual sample point  in fex\n");
+					}else{
+						MMCINFO("undefined value %d or kernel not use auto sample,use default dly\n",rval);
+						return;
+					}
+			}
+
+
+			/*************************25M dly*************************************/
+			ret = script_parser_fetch("card2_boot_para","sdc_odly_25M", &rval, 1);
+			if(ret < 0){
+					MMCINFO("get sdc_odly_25M fail,use default dly %d\n",mmchost->mmc_clk_dly[MMC_CLK_25M].oclk_dly);
+			}else{
+					if((rval>7)||(rval<0)){
+						MMCINFO("input sdc_odly_25M wrong ,use default dly %d\n",mmchost->mmc_clk_dly[MMC_CLK_25M].oclk_dly);
+					}else{
+						mmchost->mmc_clk_dly[MMC_CLK_25M].oclk_dly = rval;
+						MMCINFO("get sdc_odly_25M ok, odly = %d\n", mmchost->mmc_clk_dly[MMC_CLK_25M].oclk_dly);
+					}
+			}
+
+			ret = script_parser_fetch("card2_boot_para","sdc_sdly_25M", &rval, 1);
+			if(ret < 0)
+			MMCINFO("get sdc_sdly_25M fail,use default dly %d\n",mmchost->mmc_clk_dly[MMC_CLK_25M].sclk_dly);
+			else{
+					if((rval>7)||(rval<0)){
+						MMCINFO("input sdc_sdly_25M wrong ,use default dly %d\n",mmchost->mmc_clk_dly[MMC_CLK_25M].sclk_dly);
+					}else{
+						mmchost->mmc_clk_dly[MMC_CLK_25M].sclk_dly = rval;
+						MMCINFO("get sdc_sdly_25M ok, sdly = %d\n", mmchost->mmc_clk_dly[MMC_CLK_25M].sclk_dly);
+					}
+			}
+
+				/*************************50M dly*************************************/
+			ret = script_parser_fetch("card2_boot_para","sdc_odly_50M", &rval, 1);
+			if(ret < 0)
+			MMCINFO("get sdc_odly_50M fail,use default dly %d\n",mmchost->mmc_clk_dly[MMC_CLK_50M].oclk_dly);
+			else{
+				  if((rval>7)||(rval<0)){
+					MMCINFO("input sdc_odly_50M wrong, use default dly %d\n", mmchost->mmc_clk_dly[MMC_CLK_50M].oclk_dly);
+				  }else{
+						mmchost->mmc_clk_dly[MMC_CLK_50M].oclk_dly = rval;
+						MMCINFO("get sdc_odly_50M ok, odly = %d\n", mmchost->mmc_clk_dly[MMC_CLK_50M].oclk_dly);
+					}
+			}
+
+			ret = script_parser_fetch("card2_boot_para","sdc_sdly_50M", &rval, 1);
+			if(ret < 0)
+			MMCINFO("get sdc_sdly_50M fail,use default dly %d\n",mmchost->mmc_clk_dly[MMC_CLK_50M].sclk_dly);
+			else{
+					if((rval>7)||(rval<0)){
+						MMCINFO("input sdc_sdly_50M wrong, use default dly %d\n", mmchost->mmc_clk_dly[MMC_CLK_50M].sclk_dly);
+					}else{
+						mmchost->mmc_clk_dly[MMC_CLK_50M].sclk_dly = rval;
+						MMCINFO("get sdc_sdly_50M ok, sdly = %d\n", mmchost->mmc_clk_dly[MMC_CLK_50M].sclk_dly);
+					}
+			}
+
+        break;
 		}
-
-
+		
+		case 1:{
+		MMCINFO("get info for card 1...\n");
+		
+		gpio_request_simple("mmc1_para", NULL);
+		
+		MMCINFO("using defaults...\n");
+		
+		break;
+		}
+		default:
+			MMCINFO("Wrong mmc number %d\n", sdc_no);
+			break;
+	
 	}
 }
 
@@ -1890,6 +1912,9 @@ int sunxi_mmc_init(int sdc_no)
 	mmc->host_caps = MMC_MODE_4BIT | MMC_MODE_8BIT;
 	mmc->host_caps |= MMC_MODE_HS_52MHz | MMC_MODE_HS| MMC_MODE_HC | MMC_MODE_DDR_52MHz;
 
+
+MMCINFO("setting mmc->f_min and mmc->f_max...\n");
+
 	if(sdc_no == 0){
        mmc->f_min = 400000;
 #if defined(CONFIG_ARCH_SUN9IW1P1)
@@ -1904,9 +1929,16 @@ int sunxi_mmc_init(int sdc_no)
 #else
        mmc->f_max = 50000000;
 #endif
+	}else if (sdc_no == 1){
+       mmc->f_min = 400000;
+#if defined(CONFIG_ARCH_SUN9IW1P1)
+       mmc->f_max = 48000000;
+#else
+       mmc->f_max = 50000000;
+#endif
 	}
 
-	MMCDBG("mmc->host_caps %x\n",mmc->host_caps);
+	MMCINFO("mmc->host_caps %x\n",mmc->host_caps);
 	mmc_host[sdc_no].pdes = malloc(64 * 1024);
 	if(mmc_host[sdc_no].pdes == NULL){
 		MMCINFO("get mem for descriptor failed\n");

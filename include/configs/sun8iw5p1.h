@@ -350,9 +350,11 @@
 #define CONFIG_AUTO_COMPLETE
 
 #define CONFIG_CMD_FAT			/* with this we can access bootfs in nand */
+#define CONFIG_CMD_EXT2
 #define CONFIG_CMD_BOOTA		/* boot android image */
 #define CONFIG_CMD_RUN			/* run a command */
 #define CONFIG_CMD_BOOTD		/* boot the default command */
+#define CONFIG_CMD_SOURCE
 
 #define SUPPORT_DCLK_HZ
 #endif /* __CONFIG_H */

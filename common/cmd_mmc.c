@@ -23,6 +23,7 @@
 
 #include <common.h>
 #include <command.h>
+
 #include <mmc.h>
 
 #ifndef CONFIG_GENERIC_MMC
@@ -129,11 +130,11 @@ int do_mmcinfo (cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	}
 */
     card_no = get_mmc_num();
-    if((card_no != 0) && (card_no != 2))
-    {
-        puts("No MMC device available\n");
-	    return 1;
-    }
+    //if((card_no != 0) && (card_no != 2))
+    //{
+    //    puts("No MMC device available\n");
+	//    return 1;
+    //}
 	mmc = find_mmc_device(card_no);
 
 	if (mmc) {
@@ -172,11 +173,11 @@ int do_mmcops(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	}
 */
 	card_no = get_mmc_num();
-	if((card_no != 0) && (card_no != 2))
-	{
-		puts("No MMC device available\n");
-		return 1;
-	}
+	//if((card_no != 0) && (card_no != 2))
+	//{
+	//	puts("No MMC device available\n");
+	//	return 1;
+	//}
 
 	if (strcmp(argv[1], "rescan") == 0) {
 		struct mmc *mmc = find_mmc_device(card_no);
@@ -217,8 +218,11 @@ int do_mmcops(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		int dev, part = -1;
 		struct mmc *mmc;
 
-		if (argc == 2)
+		if (argc == 2){
 			dev = card_no;
+		    printf("attempting to switch card_no to %d\n",dev);
+			
+		}
 		else if (argc == 3)
 			dev = simple_strtoul(argv[2], NULL, 10);
 		else if (argc == 4) {
@@ -232,11 +236,21 @@ int do_mmcops(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		} else
 			return cmd_usage(cmdtp);
 
+        printf("attempting to run find_mmc_device(dev): %d\n",dev);
 		mmc = find_mmc_device(dev);
+		
 		if (!mmc) {
+			printf("that did not work...\n");
 			printf("no mmc device at slot %x\n", dev);
+			//printf("trying to register it with mmc_register");
+			//mmc_register(dev, mmc);
 			return 1;
 		}
+		//if (!mmc) {
+		//	printf("mmc_register did not work...\n");
+		//	return 1;
+		//}
+		printf("mmc_register did work!\n");
 
 		mmc_init(mmc);
 		if (part != -1) {
@@ -275,50 +289,50 @@ int do_mmcops(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 		state = MMC_INVALID;
 
 	if (state != MMC_INVALID) {
-		struct mmc *mmc = find_mmc_device(card_no);
-		int idx = 2;
-		u32 blk, cnt, n;
-		void *addr;
+		// struct mmc *mmc = find_mmc_device(card_no);
+		// int idx = 2;
+		// u32 blk, cnt, n;
+		// void *addr;
 
-		if (state != MMC_ERASE) {
-			addr = (void *)simple_strtoul(argv[idx], NULL, 16);
-			++idx;
-		} else
-			addr = 0;
-		blk = simple_strtoul(argv[idx], NULL, 16);
-		cnt = simple_strtoul(argv[idx + 1], NULL, 16);
+		// if (state != MMC_ERASE) {
+			// addr = (void *)simple_strtoul(argv[idx], NULL, 16);
+			// ++idx;
+		// } else
+			// addr = 0;
+		// blk = simple_strtoul(argv[idx], NULL, 16);
+		// cnt = simple_strtoul(argv[idx + 1], NULL, 16);
 
-		if (!mmc) {
-			printf("no mmc device at slot %x\n", card_no);
-			return 1;
-		}
+		// if (!mmc) {
+			// printf("no mmc device at slot %x\n", card_no);
+			// return 1;
+		// }
 
-		printf("\nMMC %s: dev # %d, block # %d, count %d ... ",
-				argv[1], card_no, blk, cnt);
+		// printf("\nMMC %s: dev # %d, block # %d, count %d ... ",
+				// argv[1], card_no, blk, cnt);
 
-		mmc_init(mmc);
+		// mmc_init(mmc);
 
-		switch (state) {
-		case MMC_READ:
-			n = mmc->block_dev.block_read(card_no, blk,
-						      cnt, addr);
-			/* flush cache after read */
-			flush_cache((ulong)addr, cnt * 512); /* FIXME */
-			break;
-		case MMC_WRITE:
-			n = mmc->block_dev.block_write(card_no, blk,
-						      cnt, addr);
-			break;
-		case MMC_ERASE:
-			n = mmc->block_dev.block_erase(card_no, blk, cnt);
-			break;
-		default:
-			BUG();
-		}
+		// switch (state) {
+		// case MMC_READ:
+			// n = mmc->block_dev.block_read(card_no, blk,
+						      // cnt, addr);
+			// /* flush cache after read */
+			// flush_cache((ulong)addr, cnt * 512); /* FIXME */
+			// break;
+		// case MMC_WRITE:
+			// n = mmc->block_dev.block_write(card_no, blk,
+						      // cnt, addr);
+			// break;
+		// case MMC_ERASE:
+			// n = mmc->block_dev.block_erase(card_no, blk, cnt);
+			// break;
+		// default:
+			// BUG();
+		// }
 
-		printf("%d blocks %s: %s\n",
-				n, argv[1], (n == cnt) ? "OK" : "ERROR");
-		return (n == cnt) ? 0 : 1;
+		// printf("%d blocks %s: %s\n",
+				// n, argv[1], (n == cnt) ? "OK" : "ERROR");
+		// return (n == cnt) ? 0 : 1;
 	}
 
 	return cmd_usage(cmdtp);

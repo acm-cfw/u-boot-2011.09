@@ -3266,6 +3266,9 @@ int mmc_send_if_cond(struct mmc *mmc)
 
 int mmc_register(struct mmc *mmc)
 {
+	
+	MMCINFO("running mmc_register...\n");
+	
 	/* Setup the universal parts of the block interface just once */
 	mmc->block_dev.if_type = IF_TYPE_MMC;
 	//mmc->block_dev.dev = cur_dev_num++;
@@ -3313,9 +3316,12 @@ int mmc_register(struct mmc *mmc)
 	if (!mmc->b_max)
 		mmc->b_max = CONFIG_SYS_MMC_MAX_BLK_COUNT;
 
+    
 	INIT_LIST_HEAD (&mmc->link);
 
 	list_add_tail (&mmc->link, &mmc_devices);
+	
+	MMCINFO("done registering...\n");
 
 	return 0;
 }
@@ -5347,7 +5353,8 @@ int mmc_write_info(int dev_num,void *buffer,u32 buffer_size)
 static int mmc_init_product(struct mmc *mmc)
 {
 	int err;
-
+	
+    
 	//while((*(volatile unsigned int *)0) != 1);
 	if (mmc->has_init){
 		MMCINFO("Has init\n");
@@ -5444,7 +5451,10 @@ static int mmc_init_boot(struct mmc *mmc)
 {
 	int err;
 	int work_mode = uboot_spare_head.boot_data.work_mode;
-
+    
+	MMCINFO("starting mmc_init_boot from mmc.c...\n");
+	
+	
 	if (mmc->has_init){
 		MMCINFO("Has init\n");
 		return 0;
@@ -5456,14 +5466,21 @@ static int mmc_init_boot(struct mmc *mmc)
 		MMCINFO("mmc->init error\n");
 		return err;
 	}
+	
+	MMCINFO("running mmc_set_bus_width...\n");
 	mmc_set_bus_width(mmc, 1);
+	
+	MMCINFO("running mmc_set_clock...\n");
 	mmc_set_clock(mmc, 1);
 
 	/* Reset the Card */
+	
+	MMCINFO("running mmc_go_idle...\n");
 	err = mmc_go_idle(mmc);
-
+    
+	
 	if (err){
-		MMCINFO("mmc go idle error\n");
+		MMCINFO("mmc go idle error... mmc_init_boot\n");
 		return err;
 	}
 	/* The internal partition reset to user partition(0) at every CMD0*/
@@ -5487,6 +5504,7 @@ static int mmc_init_boot(struct mmc *mmc)
 		}
 	}
 
+    MMCINFO("running mmc_startup...\n");
 	err = mmc_startup(mmc);
 	if (err){
 		MMCINFO("*SD/MMC %d init error!!*\n",mmc->control_num);
@@ -5529,9 +5547,15 @@ static int mmc_init_boot(struct mmc *mmc)
 
 int mmc_init(struct mmc *mmc)
 {
+	
+	
 	int work_mode = uboot_spare_head.boot_data.work_mode;
 	int ret = 0;
 
+
+    MMCINFO("starting mmc_init from mmc.c...\n");
+	 
+	 
 #if defined(CONFIG_ARCH_SUN9IW1P1)
 	if(gd->securemode == SUNXI_SECURE_MODE_NO_SECUREOS)
     {
@@ -5562,6 +5586,8 @@ int mmc_init(struct mmc *mmc)
 		&&(work_mode != WORK_MODE_BOOT)){
 		return mmc_init_product(mmc);
 	}
+	
+	MMCINFO("going to run mmc_init_boot(mmc)...\n");
 	ret = mmc_init_boot(mmc);
 
 	if (mmc->drv_wipe_feature & DRV_PARA_DISABLE_EMMC_SANITIZE)
@@ -5582,10 +5608,10 @@ int mmc_init(struct mmc *mmc)
 	//MMCINFO("secure_erase_to:         %d ms\n", mmc->secure_trim_timeout);
 	
     
-    MMCDBG("support sanitze:         %d \n", mmc->secure_feature & EXT_CSD_SEC_SANITIZE);
-	MMCDBG("support trim:            %d \n", mmc->secure_feature & EXT_CSD_SEC_GB_CL_EN);
-	MMCDBG("support secure purge op: %d \n", mmc->secure_feature & EXT_CSD_SEC_ER_EN);
-	MMCDBG("secure removal type:     0x%x\n", mmc->secure_removal_type);
+    MMCINFO("support sanitze:         %d \n", mmc->secure_feature & EXT_CSD_SEC_SANITIZE);
+	MMCINFO("support trim:            %d \n", mmc->secure_feature & EXT_CSD_SEC_GB_CL_EN);
+	MMCINFO("support secure purge op: %d \n", mmc->secure_feature & EXT_CSD_SEC_ER_EN);
+	MMCINFO("secure removal type:     0x%x\n", mmc->secure_removal_type);
 	
     MMCINFO("secure_feature 0x%x\n", mmc->secure_feature);
     MMCINFO("secure_removal_type  0x%x\n", mmc->secure_removal_type);
