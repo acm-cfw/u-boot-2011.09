@@ -112,8 +112,8 @@ SPLTREE		:= $(OBJTREE)/spl
 SRCTREE		:= $(CURDIR)
 TOPDIR		:= $(SRCTREE)
 LNDIR		:= $(OBJTREE)
-SPLDIR          := $(OBJTREE)/../bootloader/sunxi_spl
-SPLBASE         := $(OBJTREE)/../bootloader
+SPLDIR          := $(OBJTREE)/sunxi_spl
+SPLBASE         := $(OBJTREE)
 SPLSUPPORT  := $(shell if [ -d $(SPLBASE) ] ; then echo "y"; else echo "n"; fi)
 export	TOPDIR SRCTREE OBJTREE SPLTREE SPLBASE SPLDIR
 
@@ -462,22 +462,22 @@ $(obj)u-boot.ubl:       $(obj)u-boot-nand.bin
 		-e $(CONFIG_SYS_TEXT_BASE) -d $< $@
 
 $(obj)u-boot-$(TARGET).bin:	$(obj)u-boot.bin
-		@git show HEAD --pretty=format:"%H" | head -n 1 > cur.log
-		@../add_hash.sh -f u-boot.bin -m uboot
-		@cp $(obj)u-boot.bin         $(obj)u-boot-$(CONFIG_TARGET_NAME).bin
-		@if [ -z "$(findstring _nor, $(CONFIG_TARGET_NAME))" ]; then \
-			if [ -z "$(findstring $(OTA_TEST_NAME), $(SUNXI_MODE))" ]; then \
-				cp -v $(obj)u-boot-$(CONFIG_TARGET_NAME).bin  ../bin/u-boot-$(CONFIG_TARGET_NAME).bin; \
-			else \
-				cp -v $(obj)u-boot-$(CONFIG_TARGET_NAME).bin  ../bin/u-boot-$(CONFIG_TARGET_NAME)-$(SUNXI_MODE).bin; \
-			fi \
-		else	\
-			if [ -z "$(findstring $(OTA_TEST_NAME), $(SUNXI_MODE))" ]; then \
-				cp -v $(obj)u-boot-$(CONFIG_TARGET_NAME).bin  ../bin/u-boot-spinor-$(CONFIG_PLATFORM_NAME).bin; \
-			else \
-				cp -v $(obj)u-boot-$(CONFIG_TARGET_NAME).bin  ../bin/u-boot-spinor-$(CONFIG_PLATFORM_NAME)-$(SUNXI_MODE).bin; \
-			fi \
-		fi
+		git show HEAD --pretty=format:"%H" | head -n 1 > cur.log
+		./add_hash.sh -f u-boot.bin -m uboot
+		cp $(obj)u-boot.bin         ./build/$(obj)u-boot-$(CONFIG_TARGET_NAME).bin
+		#if [ -z "$(findstring _nor, $(CONFIG_TARGET_NAME))" ]; then \
+		#	if [ -z "$(findstring $(OTA_TEST_NAME), $(SUNXI_MODE))" ]; then \
+		#		cp -v $(obj)u-boot-$(CONFIG_TARGET_NAME).bin  ./u-boot-$(CONFIG_TARGET_NAME).bin; \
+		#	else \
+		#		cp -v $(obj)u-boot-$(CONFIG_TARGET_NAME).bin  ./u-boot-$(CONFIG_TARGET_NAME)-$(SUNXI_MODE).bin; \
+		#	fi \
+		#else	\
+		#	if [ -z "$(findstring $(OTA_TEST_NAME), $(SUNXI_MODE))" ]; then \
+		#		cp -v $(obj)u-boot-$(CONFIG_TARGET_NAME).bin  ./u-boot-spinor-$(CONFIG_PLATFORM_NAME).bin; \
+		#	else \
+		#		cp -v $(obj)u-boot-$(CONFIG_TARGET_NAME).bin  ./u-boot-spinor-$(CONFIG_PLATFORM_NAME)-$(SUNXI_MODE).bin; \
+		#	fi \
+		#fi
 
 GEN_UBOOT = \
 		UNDEF_SYM=`$(OBJDUMP) -x $(LIBBOARD) $(LIBS) | \
@@ -502,46 +502,46 @@ spl_lib: $(TIMESTAMP_FILE) $(VERSION_FILE) depend
 fes:    spl_lib depend
 		$(MAKE) -C $(SPLBASE)/sunxi_spl/fes_init all
 		@git show HEAD --pretty=format:"%H" | head -n 1 > cur.log
-		@../add_hash.sh -f $(SPLBASE)/sunxi_spl/fes_init/fes1.bin -m boot0
+		@./add_hash.sh -f $(SPLBASE)/sunxi_spl/fes_init/fes1.bin -m boot0
 		@$(TOPDIR)/tools/gen_check_sum $(SPLBASE)/sunxi_spl/fes_init/fes1.bin fes1_$(CONFIG_TARGET_NAME).bin > /dev/null
-		@cp -v fes1_$(CONFIG_TARGET_NAME).bin ../bin/fes1_$(CONFIG_TARGET_NAME).bin
+		@cp -v fes1_$(CONFIG_TARGET_NAME).bin ./build/fes1_$(CONFIG_TARGET_NAME).bin
 
 boot0:  spl_lib depend
 		$(MAKE) -C $(SPLBASE)/sunxi_spl/boot0 all
 ifdef CONFIG_STORAGE_MEDIA_NAND
-		@git show HEAD --pretty=format:"%H" | head -n 1 > cur.log
-		@../add_hash.sh -f $(SPLBASE)/sunxi_spl/boot0/boot0_nand.bin -m boot0
-		@$(TOPDIR)/tools/gen_check_sum $(SPLBASE)/sunxi_spl/boot0/boot0_nand.bin boot0_nand_$(TARGET).bin > /dev/null
+		git show HEAD --pretty=format:"%H" | head -n 1 > $(TOPDIR)/cur.log
+		@$(TOPDIR)/add_hash.sh -f sunxi_spl/boot0/boot0_nand.bin -m boot0
+		@$(TOPDIR)/tools/gen_check_sum sunxi_spl/boot0/boot0_nand.bin boot0_nand_$(TARGET).bin
 		@if [ -z "$(findstring $(OTA_TEST_NAME), $(SUNXI_MODE))" ]; then \
-			cp -v boot0_nand_$(CONFIG_TARGET_NAME).bin ../bin/boot0_nand_$(CONFIG_TARGET_NAME).bin; \
+			cp -v boot0_nand_$(CONFIG_TARGET_NAME).bin build/boot0_nand_$(CONFIG_TARGET_NAME).bin; \
 		else \
-			cp -v boot0_nand_$(CONFIG_TARGET_NAME).bin ../bin/boot0_nand_$(CONFIG_TARGET_NAME)-$(SUNXI_MODE).bin; \
+			cp -v boot0_nand_$(CONFIG_TARGET_NAME).bin build/boot0_nand_$(CONFIG_TARGET_NAME)-$(SUNXI_MODE).bin; \
 		fi
 endif
 ifdef CONFIG_STORAGE_MEDIA_MMC
 		@git show HEAD --pretty=format:"%H" | head -n 1 > cur.log
-		@../add_hash.sh -f $(SPLBASE)/sunxi_spl/boot0/boot0_sdcard.bin -m boot0
+		@./add_hash.sh -f $(SPLBASE)/sunxi_spl/boot0/boot0_sdcard.bin -m boot0
 		@$(TOPDIR)/tools/gen_check_sum $(SPLBASE)/sunxi_spl/boot0/boot0_sdcard.bin boot0_sdcard_$(TARGET).bin > /dev/null
 		@if [ -z "$(findstring $(OTA_TEST_NAME), $(SUNXI_MODE))" ]; then \
-			cp -v boot0_sdcard_$(CONFIG_TARGET_NAME).bin ../bin/boot0_sdcard_$(CONFIG_TARGET_NAME).bin; \
+			cp -v boot0_sdcard_$(CONFIG_TARGET_NAME).bin ./build/boot0_sdcard_$(CONFIG_TARGET_NAME).bin; \
 		else \
-			cp -v boot0_sdcard_$(CONFIG_TARGET_NAME).bin ../bin/boot0_sdcard_$(CONFIG_TARGET_NAME)-$(SUNXI_MODE).bin; \
+			cp -v boot0_sdcard_$(CONFIG_TARGET_NAME).bin ./build/boot0_sdcard_$(CONFIG_TARGET_NAME)-$(SUNXI_MODE).bin; \
 		fi
 endif
 ifdef CONFIG_STORAGE_MEDIA_SPINOR
 		@git show HEAD --pretty=format:"%H" | head -n 1 > cur.log
-		@../add_hash.sh -f $(SPLBASE)/sunxi_spl/boot0/boot0_spinor.bin -m boot0
+		@./add_hash.sh -f $(SPLBASE)/sunxi_spl/boot0/boot0_spinor.bin -m boot0
 		@$(TOPDIR)/tools/gen_check_sum $(SPLBASE)/sunxi_spl/boot0/boot0_spinor.bin boot0_spinor_$(TARGET).bin > /dev/null
 		@if [ -z "$(findstring $(OTA_TEST_NAME), $(SUNXI_MODE))" ]; then \
-			cp -v boot0_spinor_$(CONFIG_TARGET_NAME).bin ../bin/boot0_spinor_$(CONFIG_TARGET_NAME).bin; \
+			cp -v boot0_spinor_$(CONFIG_TARGET_NAME).bin ./build/boot0_spinor_$(CONFIG_TARGET_NAME).bin; \
 		else \
-			cp -v boot0_spinor_$(CONFIG_TARGET_NAME).bin ../bin/boot0_spinor_$(CONFIG_TARGET_NAME)-$(SUNXI_MODE).bin; \
+			cp -v boot0_spinor_$(CONFIG_TARGET_NAME).bin ./build/boot0_spinor_$(CONFIG_TARGET_NAME)-$(SUNXI_MODE).bin; \
 		fi
 endif
 sboot:  spl_lib depend
 		$(MAKE) -C $(SPLBASE)/sunxi_spl/sbrom all
 		@git show HEAD --pretty=format:"%H" | head -n 1 > cur.log
-		@../add_hash.sh -f $(SPLBASE)/sunxi_spl/sbrom/sboot.bin -m sboot
+		@./add_hash.sh -f $(SPLBASE)/sunxi_spl/sbrom/sboot.bin -m sboot
 		@$(TOPDIR)/tools/gen_check_sum $(SPLBASE)/sunxi_spl/sbrom/sboot.bin sboot_$(CONFIG_TARGET_NAME).bin > /dev/null
 		@if [ -z "$(findstring $(OTA_TEST_NAME), $(SUNXI_MODE))" ]; then \
 			cp -v sboot_$(CONFIG_TARGET_NAME).bin $(TOPDIR)/../../../../target/allwinner/$(TARGET_PLATFORM)-common/bin/sboot_$(CONFIG_TARGET_NAME).bin; \
